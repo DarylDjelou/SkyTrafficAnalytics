@@ -4,12 +4,35 @@
 
 library(readr)
 International_Report_Departures <- read_csv("International_Report_Departures.csv")
-View(International_Report_Departures)
+International_Report_Departures
 ```
 
-//TODO
+## Data Exploration
+```{r}
+summary(International_Report_Departures)
+```
 
-Check for missing values 
-say what data is continuous and what is categortical
-wecide what is the best way to identify 
-Check for outliars(do box plots over the 16 attributes)
+## Data Cleaning
+```{r}
+check_missing_values <- function(data) {
+  missing_values <- sapply(data, function(x) sum(is.na(x)))
+  return(missing_values)
+}
+check_missing_values(International_Report_Departures)
+```
+
+## Check for outliers in the dataset
+```{r}
+library(ggplot2)
+# Assuming 'data' is your dataset and 'attribute' is the column you want to check for outliers
+check_outliers <- function(data, attribute) {
+  ggplot(data, aes(y = .data[[attribute]])) +
+    geom_boxplot() +
+    labs(title = paste("Box Plot for", attribute), y = attribute) +
+    theme_minimal()
+}
+
+# display boxplot for a specific attribute, replace 'attribute_name' with the actual column name
+check_outliers(International_Report_Departures, "Total")
+```
+
