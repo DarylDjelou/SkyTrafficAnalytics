@@ -10,6 +10,7 @@ International_Report_Departures
 ## Data Exploration
 ```{r}
 summary(International_Report_Departures)
+summary(International_Report_Passengers)
 ```
 
 ## Data Cleaning
@@ -19,6 +20,7 @@ check_missing_values <- function(data) {
   return(missing_values)
 }
 check_missing_values(International_Report_Departures)
+check_missing_values(International_Report_Passengers)
 ```
 
 ## Check for outliers in the dataset
@@ -35,4 +37,18 @@ check_outliers <- function(data, attribute) {
 # display boxplot for a specific attribute, replace 'attribute_name' with the actual column name
 check_outliers(International_Report_Departures, "Total")
 ```
+# Boxplot for both Departures and Passengers they can both be refined to show specific years(for major events 9/11, 2008 recesion) 
+filtered_data <- subset(International_Report_Departures, Year >= 2000 & Year <= 2011)
+boxplot(Total ~ Year,
++         data = International_Report_Departures,
++         main = "Departures by Airline",
++         xlab = "Year",
++         ylab = "Total Departures",
++         las = 1)
+boxplot(Total ~ Year,
++         data = International_Report_Passengers,
++         main = "Departures by Airline",
++         xlab = "Year",
++         ylab = "Total Departures",
++         las = 1)
 
