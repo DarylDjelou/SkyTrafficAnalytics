@@ -1,1 +1,15 @@
-hello
+## Load Dataset 
+
+```{r}
+
+library(readr)
+International_Report_Departures <- read_csv("International_Report_Departures.csv")
+View(International_Report_Departures)
+```
+
+//TODO
+
+Check for missing values 
+say what data is continuous and what is categortical
+wecide what is the best way to identify 
+Check for outliars(do box plots over the 16 attributes)
