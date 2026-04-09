@@ -188,3 +188,57 @@ ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = Tota
   scale_fill_viridis_c() +
   theme_minimal()
 ```
+#This visualizes and seperates the departures into seasonal trends. 
+library(tidyverse)
+library(patchwork)
+
+visualize_flights_per_season <- function(df) {
+  
+  season_colors <- c("Winter" = "#75aad8", "Spring" = "#ff89ff", 
+                     "Summer" = "#ffd900", "Autumn" = "#ff7400")
+  
+  departures_by_season <- df %>%
+    group_by(Year, Month) %>%
+    summarise(Total = sum(Total), .groups = "drop") %>%
+    mutate(Season = case_when(
+      Month %in% c(12, 1, 2) ~ "Winter",
+      Month %in% c(3, 4, 5)  ~ "Spring",
+      Month %in% c(6, 7, 8)  ~ "Summer",
+      Month %in% c(9, 10, 11) ~ "Autumn"
+    )) %>%
+    group_by(Year, Season) %>%
+    summarise(Total = sum(Total), .groups = "drop") %>%
+    mutate(Season = factor(Season, levels = c("Winter", "Spring", "Summer", "Autumn")))
+  
+  p1 <- ggplot(departures_by_season, aes(x = factor(Year), y = Total, fill = Season)) +
+    geom_col(position = "dodge") +
+    scale_fill_manual(values = season_colors) +
+    scale_y_continuous(labels = scales::comma) + 
+    labs(
+      title = "Flights per Season by Year",
+      x = "Year",
+      y = "Number of Flights"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  departures_by_season_sum <- departures_by_season %>%
+    group_by(Season) %>%
+    summarise(Total = sum(Total), .groups = "drop")
+  
+  p2 <- ggplot(departures_by_season_sum, aes(x = Season, y = Total, fill = Season)) +
+    geom_col() +
+    scale_fill_manual(values = season_colors) +
+    scale_y_continuous(labels = scales::comma) +   # <-- fix here
+    labs(
+      title = "Total Flights per Season",
+      x = "Season",
+      y = "Number of Flights"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  print(p1 + p2)
+}
+
+visualize_flights_per_season(International_Report_Departures)
