@@ -1,8 +1,8 @@
 ## Load Dataset 
 
 ```{r}
-
 library(readr)
+library(dplyr)
 International_Report_Departures <- read_csv("International_Report_Departures.csv")
 International_Report_Departures
 
@@ -36,23 +36,155 @@ check_outliers <- function(data, attribute) {
     labs(title = paste("Box Plot for", attribute), y = attribute) +
     theme_minimal()
 }
-
+```
+```{r}
 # display boxplot for a specific attribute, replace 'attribute_name' with the actual column name
 check_outliers(International_Report_Departures, "Total")
 ```
 # Boxplot for both Departures and Passengers they can both be refined to show specific years(for major events 9/11, 2008 recesion) 
+```{r}
 filtered_data <- subset(International_Report_Departures, Year >= 2000 & Year <= 2011)
 Pass_data <- subset(International_Report_Passengers, Year >= 2000 & Year <= 2011)
 boxplot(Total ~ Year,
-+         data = International_Report_Departures,
-+         main = "Departures by Airline",
-+         xlab = "Year",
-+         ylab = "Total Departures",
-+         las = 1)
+         data = International_Report_Departures,
+         main = "Departures by Airline",
+         xlab = "Year",
+         ylab = "Total Departures",
+         las = 1)
 boxplot(Total ~ Year,
-+         data = International_Report_Passengers,
-+         main = "Departures by Airline",
-+         xlab = "Year",
-+         ylab = "Total Departures",
-+         las = 1)
+         data = International_Report_Passengers,
+         main = "Departures by Airline",
+         xlab = "Year",
+         ylab = "Total Departures",
+         las = 1)
+```
+## Total Departures by Year or Month
 
+```{r}
+departures_by_year <- International_Report_Departures %>%
+  group_by(Year) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+departures_by_year
+```
+
+```{r}
+departures_by_month <- International_Report_Departures %>%
+  group_by(Year, Month) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+departures_by_month
+```
+
+## Departures by Airport
+
+```{r}
+departures_by_origin <- International_Report_Departures %>%
+  group_by(usg_apt) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+departures_by_origin
+```
+
+```{r}
+departures_by_dest <- International_Report_Departures %>%
+  group_by(fg_apt) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+departures_by_dest
+```
+
+## Departures by Airline
+
+```{r}
+departures_by_airline <- International_Report_Departures %>%
+  group_by(carrier) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+departures_by_airline
+```
+
+## Route Analysis
+
+```{r}
+departures_by_route <- International_Report_Departures %>%
+  group_by(usg_apt, fg_apt) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+departures_by_route
+```
+
+## Seasonal Patterns
+
+```{r}
+seasonal_pattern <- International_Report_Departures %>%
+  group_by(Month) %>%
+  summarise(TotalDepartures = sum(Total, na.rm = TRUE))
+seasonal_pattern
+```
+
+## Top Routes or Airports
+
+```{r}
+top_n_routes <- departures_by_route %>%
+  arrange(desc(TotalDepartures)) %>%
+  slice_head(n = 10)
+top_n_routes
+```
+
+```{r}
+top_n_airports <- departures_by_origin %>%
+  arrange(desc(TotalDepartures)) %>%
+  slice_head(n = 10)
+top_n_airports
+```
+
+## Year-over-Year Growth
+
+```{r}
+departures_by_year <- departures_by_year %>%
+  arrange(Year) %>%
+  mutate(YoY_Growth = (TotalDepartures - lag(TotalDepartures)) / lag(TotalDepartures) * 100)
+departures_by_year
+```
+
+## Average Departures per Route/Airport
+
+```{r}
+avg_departures_per_route <- departures_by_route %>%
+  summarise(AvgDepartures = mean(TotalDepartures, na.rm = TRUE))
+avg_departures_per_route
+```
+
+```{r}
+avg_departures_per_airport <- departures_by_origin %>%
+  summarise(AvgDepartures = mean(TotalDepartures, na.rm = TRUE))
+avg_departures_per_airport
+```
+
+## Visualization
+
+
+## Visualization
+
+### Total Departures by Year
+
+```{r}
+ggplot(departures_by_year, aes(x = Year, y = TotalDepartures)) +
+  geom_line() +
+  labs(title = "Total Departures by Year", x = "Year", y = "Total Departures") +
+  theme_minimal()
+```
+
+### Top 10 Origin Airports
+
+```{r}
+ggplot(top_n_airports, aes(x = reorder(usg_apt, -TotalDepartures), y = TotalDepartures)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top 10 Origin Airports by Departures", x = "Origin Airport", y = "Total Departures") +
+  theme_minimal()
+```
+
+### Departures Heatmap by Month and Year
+
+```{r}
+ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = TotalDepartures)) +
+  geom_tile() +
+  labs(title = "Departures Heatmap by Month and Year", x = "Month", y = "Year") +
+  scale_fill_viridis_c() +
+  theme_minimal()
+```
