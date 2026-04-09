@@ -42,6 +42,7 @@ check_outliers(International_Report_Departures, "Total")
 ```
 # Boxplot for both Departures and Passengers they can both be refined to show specific years(for major events 9/11, 2008 recesion) 
 filtered_data <- subset(International_Report_Departures, Year >= 2000 & Year <= 2011)
+Pass_data <- subset(International_Report_Passengers, Year >= 2000 & Year <= 2011)
 boxplot(Total ~ Year,
 +         data = International_Report_Departures,
 +         main = "Departures by Airline",
