@@ -189,6 +189,7 @@ ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = Tota
   theme_minimal()
 ```
 #This visualizes and seperates the departures into seasonal trends. 
+
 library(tidyverse)
 library(patchwork)
 
