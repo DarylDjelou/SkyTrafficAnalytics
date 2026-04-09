@@ -189,7 +189,7 @@ ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = Tota
   theme_minimal()
 ```
 #This visualizes and seperates the departures into seasonal trends. 
-
+```{r}
 library(tidyverse)
 library(patchwork)
 
@@ -244,8 +244,9 @@ visualize_flights_per_season <- function(df) {
 }
 
 visualize_flights_per_season(International_Report_Departures)
-
+```
 # Correlation matrix that shows how weak or strong variables are related to eachother
+```{r}
 library(tidyverse)
 
 # Select only numeric columns
@@ -279,3 +280,4 @@ ggplot(melted_corr, aes(x = Var1, y = Var2, fill = value)) +
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "none"
   )
+```
