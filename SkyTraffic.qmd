@@ -5,6 +5,9 @@
 library(readr)
 International_Report_Departures <- read_csv("International_Report_Departures.csv")
 International_Report_Departures
+
+International_Report_Passengers <- read_csv("International_Report_Passengers.csv")
+International_Report_Passengers
 ```
 
 ## Data Exploration
