@@ -23,9 +23,22 @@ We selected the International Aviation datasets, specifically `International_Rep
 **Why we chose this dataset:** 
 The dataset is of a massive, industry-scale size (almost 1 million rows), and offers highly complete temporal tracking. This makes it an ideal playground for extracting seasonal insights and employing big data analytics using structured Machine Learning processes.
 
+**Dataset Size & Structure:**  
+The dataset contains close to 1 million observations with structured categorical and numerical variables including Year, Month, Carrier Group, Origin Airport, Destination Airport, and Total Departures.
+
+**Relevance to Real-World Problem:**  
+This dataset allows for analysis of global aviation trends, seasonal demand, and airline operational behavior. These insights are directly applicable to airline logistics, airport staffing, and transportation forecasting.
+
+**Expected Insights:**
+- Identification of peak travel seasons
+- High-traffic airport hubs
+- Carrier-based traffic patterns
+- Predictability of flight volumes using historical data
+
 ## Problem Statement
 
 **Key Question:** *How have global aviation traffic volumes evolved over time considering seasonality, and how effectively can we predict future flight volumes using core historical characteristics?*
+
 
 ---
 
@@ -115,6 +128,19 @@ ggplot(filtered_data, aes(x = factor(Year), y = Total)) +
 **Interpretation:**
 The red visual dots represent statistical outliers (routes with exceptionally huge activity like NYC to London). The boxes themselves show that the central median of flight routes rests tightly below 50 departures per month, per route.
 
+#| label: summary-stats
+summary(International_Report_Departures$Total)
+
+International_Report_Departures %>%
+  summarise(
+    Mean = mean(Total, na.rm = TRUE),
+    Median = median(Total, na.rm = TRUE),
+    SD = sd(Total, na.rm = TRUE),
+    Min = min(Total, na.rm = TRUE),
+    Max = max(Total, na.rm = TRUE)
+  )
+**Interpretation:**  
+The summary statistics confirm a heavily right-skewed distribution, where a small number of routes contribute disproportionately high traffic volumes. This justifies the later use of log transformation in modeling.
 ---
 
 # Week 2-3: Exploratory Data Analysis (EDA) and Visualization
@@ -349,6 +375,20 @@ visualize_flights_per_season(International_Report_Departures)
 **Interpretation:** 
 The aggregated math explicitly validates what the heathen map hinted at: Summer carries the dominant load of historical international volumes, with Winter naturally dragging functionally lower due to holiday freezes and school schedules.
 
+# label: correlation-matrix
+
+numeric_data <- International_Report_Departures %>%
+  select(Year, Month, Total)
+
+cor_matrix <- cor(numeric_data, use = "complete.obs")
+cor_matrix
+
+library(ggcorrplot)
+ggcorrplot(cor_matrix, lab = TRUE)
+
+**Interpretation:**  
+The correlation matrix shows weak linear relationships between variables, reinforcing the need for non-linear models such as Decision Trees and Random Forests.
+
 ---
 
 # Week 4: Baseline Modeling
@@ -436,6 +476,8 @@ conf_matrix_logistic$table
 
 cat("Logistic Regression Benchmark Accuracy:", format(conf_matrix_logistic$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
+**Interpretation:**  
+The confusion matrix shows the model’s ability to correctly classify high-traffic routes. A high number of true positives and true negatives indicates strong predictive performance, while minimizing false classifications.
 
 ---
 
@@ -484,6 +526,8 @@ cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Acc
 ```
 **Interpretation:** The accuracy score immediately jumps past basic linear mechanics verifying that complex interactions do exist natively in aviation behavior.
 
+
+
 ---
 
 # Week 6: Model Evaluation
@@ -526,6 +570,8 @@ legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic),
        col = c("blue", "red"), lwd = 3)
 ```
 **Interpretation:** The algorithm tracing furthest toward the upper left corner carries supreme diagnostic ability. Here we see the Random Forest heavily outperforms standard static thresholds. 
+
+
 
 ---
 
