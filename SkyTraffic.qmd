@@ -18,23 +18,21 @@ execute:
 
 ## Data Source Selection
 
-We selected the International Aviation datasets, specifically `International_Report_Departures.csv` and `International_Report_Passengers.csv`, which outline flight activity crossing US borders. 
+We selected the International Aviation datasets, specifically `International_Report_Departures.csv` and `International_Report_Passengers.csv`, which outline flight activity crossing US borders.
 
-**Why we chose this dataset:** 
-The dataset is of a massive, industry-scale size (almost 1 million rows), and offers highly complete temporal tracking. This makes it an ideal playground for extracting seasonal insights and employing big data analytics using structured Machine Learning processes.
+**Why we chose this dataset:** The dataset is of a massive, industry-scale size (almost 1 million rows), and offers highly complete temporal tracking. This makes it an ideal playground for extracting seasonal insights and employing big data analytics using structured Machine Learning processes.
 
 ## Problem Statement
 
 **Key Question:** *How have global aviation traffic volumes evolved over time considering seasonality, and how effectively can we predict future flight volumes using core historical characteristics?*
 
----
+------------------------------------------------------------------------
 
 # Week 1: Defining the Scope and Understanding the Data
 
 ## 1.1 Loading the Dataset
 
-**Purpose of this step:** 
-Before we can process the data, we must bring our required software libraries into the R environment. We utilize `readr` for fast CSV imports, `dplyr` for data wrangling, `ggplot2` for plotting, and `caret`/`ranger` for predictive analytics later.
+**Purpose of this step:** Before we can process the data, we must bring our required software libraries into the R environment. We utilize `readr` for fast CSV imports, `dplyr` for data wrangling, `ggplot2` for plotting, and `caret`/`ranger` for predictive analytics later.
 
 ```{r}
 library(readr)
@@ -58,12 +56,9 @@ International_Report_Passengers
 
 ## 1.2 Data Verification and Dictionary Mapping
 
-**Purpose of this step:** 
-We must inspect the dimensions (rows/columns) and variable data types to determine our target variable and map our features.
+**Purpose of this step:** We must inspect the dimensions (rows/columns) and variable data types to determine our target variable and map our features.
 
-Our primary targets for the modeling phase will be:
-*   `Total` (Numeric for Regression)
-*   `High_Traffic` (A derived classification target)
+Our primary targets for the modeling phase will be: \* `Total` (Numeric for Regression) \* `High_Traffic` (A derived classification target)
 
 ```{r}
 #| label: data-exploration
@@ -76,8 +71,7 @@ glimpse(International_Report_Departures)
 
 ## 1.3 Handling Missing Values
 
-**Purpose of this step:**
-Machine learning models (like Random Forests or Linear regressions) naturally fail or crash when they encounter `NA` (missing) values because they cannot compute mathematical equations with blanks. Here, we build a function to scan every column.
+**Purpose of this step:** Machine learning models (like Random Forests or Linear regressions) naturally fail or crash when they encounter `NA` (missing) values because they cannot compute mathematical equations with blanks. Here, we build a function to scan every column.
 
 ```{r}
 #| label: missing-values
@@ -91,15 +85,15 @@ check_missing_values <- function(data) {
 check_missing_values(International_Report_Departures)
 check_missing_values(International_Report_Passengers)
 ```
-**Interpretation:** 
-Our scan returned almost exclusively `0`s across all major variables, proving the sheer structural integrity and completeness of the US Aviation dataset. No mass-imputations (mean/mode replacing) are required!
+
+**Interpretation:** Our scan returned almost exclusively `0`s across all major variables, proving the sheer structural integrity and completeness of the US Aviation dataset. No mass-imputations (mean/mode replacing) are required!
 
 ## 1.4 Checking for Outliers
 
-**Purpose of this step:**
-Outliers can heavily skew the calculated "Mean" and fundamentally damage Regression coefficients. We build a dynamic Boxplot function to visually detect the spread and extremities of our data over a filtered timeframe.
+**Purpose of this step:** Outliers can heavily skew the calculated "Mean" and fundamentally damage Regression coefficients. We build a dynamic Boxplot function to visually detect the spread and extremities of our data over a filtered timeframe.
 
 ## Check for outliers in the dataset
+
 ```{r}
 #| label: outliers
 # Isolating the dataset to the decade spanning 9/11 and the 2008 recession
@@ -112,10 +106,10 @@ ggplot(filtered_data, aes(x = factor(Year), y = Total)) +
   # Zooming the Y axis to cleanly see the box distribution while letting outliers sit above
   coord_cartesian(ylim = c(0, 500)) 
 ```
-**Interpretation:**
-The red visual dots represent statistical outliers (routes with exceptionally huge activity like NYC to London). The boxes themselves show that the central median of flight routes rests tightly below 50 departures per month, per route.
 
----
+**Interpretation:** The red visual dots represent statistical outliers (routes with exceptionally huge activity like NYC to London). The boxes themselves show that the central median of flight routes rests tightly below 50 departures per month, per route.
+
+------------------------------------------------------------------------
 
 # Week 2-3: Exploratory Data Analysis (EDA) and Visualization
 
@@ -123,8 +117,7 @@ In this stage, we transition from examining raw row data into discovering underl
 
 ## 2.1 Trend Analysis over Time
 
-**Purpose of this step:** 
-By aggregating the total flight departures specifically by `Year`, we can visualize the macroeconomic trajectory of the aviation industry and detect drops from worldwide crises.
+**Purpose of this step:** By aggregating the total flight departures specifically by `Year`, we can visualize the macroeconomic trajectory of the aviation industry and detect drops from worldwide crises.
 
 ```{r}
 #| label: eda-time
@@ -140,13 +133,12 @@ ggplot(departures_by_year, aes(x = Year, y = TotalDepartures)) +
   labs(title = "Macro Trend: Total Flight Departures by Year", x = "Year", y = "Total Departures") +
   theme_minimal()
 ```
-**Interpretation:**
-We observe steady, massive continuous growth decade-over-decade, completely undisturbed except for immediate systemic drops reflecting historical global events.
+
+**Interpretation:** We observe steady, massive continuous growth decade-over-decade, completely undisturbed except for immediate systemic drops reflecting historical global events.
 
 ## 2.2 Analyzing Top Origin Hubs
 
-**Purpose of this step:** 
-Not all airports are equal. We extract the top 10 highest-volume Gateway Airports (`usg_apt`) to understand which cities actually push international numbers.
+**Purpose of this step:** Not all airports are equal. We extract the top 10 highest-volume Gateway Airports (`usg_apt`) to understand which cities actually push international numbers.
 
 ```{r}
 #| label: eda-airports
@@ -163,13 +155,12 @@ ggplot(departures_by_origin, aes(x = reorder(usg_apt, TotalDepartures), y = Tota
   labs(title = "Top 10 Origin Hubs by Total Departures", x = "US Gateway Airport Code", y = "Total Volume") +
   theme_minimal()
 ```
-**Interpretation:** 
-MIA (Miami), JFK (New York), and LAX (Los Angeles) dominate international traffic. They act as coastal launch-pads, meaning any infrastructure forecasting should weigh these three drastically higher than inland routes.
+
+**Interpretation:** MIA (Miami), JFK (New York), and LAX (Los Angeles) dominate international traffic. They act as coastal launch-pads, meaning any infrastructure forecasting should weigh these three drastically higher than inland routes.
 
 ## 2.3 Visualizing Seasonality (Heatmap)
 
-**Purpose of this step:** 
-Are flights influenced by the time of year? A 2D Heatmap maps `Month` against `Year` to expose any repetitive behavioral patterns.
+**Purpose of this step:** Are flights influenced by the time of year? A 2D Heatmap maps `Month` against `Year` to expose any repetitive behavioral patterns.
 
 ```{r}
 #| label: eda-heatmap
@@ -179,7 +170,6 @@ departures_by_month <- International_Report_Departures %>%
 
 ## Departures by Airport
 
-```{r}
 departures_by_origin <- International_Report_Departures %>%
   group_by(usg_apt) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
@@ -261,7 +251,6 @@ avg_departures_per_airport
 
 ## Visualization
 
-
 ## Visualization
 
 ### Total Departures by Year
@@ -291,13 +280,12 @@ ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = Tota
   scale_fill_viridis_c(option = "magma") +
   theme_minimal()
 ```
-**Interpretation:** 
-The heatmap clearly exhibits bright vertical streaks localized on months 7 and 8 (July and August) continuously persisting down throughout history. This perfectly visualizes summer travel spikes.
+
+**Interpretation:** The heatmap clearly exhibits bright vertical streaks localized on months 7 and 8 (July and August) continuously persisting down throughout history. This perfectly visualizes summer travel spikes.
 
 ## 2.4 Feature Engineering Seasonal Transformation
 
-**Purpose of this step:** 
-We mathematically feature-engineer a brand new column named `Season` based on specific months, to effectively group our data into four major physical seasons for easier interpretation.
+**Purpose of this step:** We mathematically feature-engineer a brand new column named `Season` based on specific months, to effectively group our data into four major physical seasons for easier interpretation.
 
 ```{r}
 library(tidyverse)
@@ -346,10 +334,10 @@ visualize_flights_per_season <- function(df) {
 
 visualize_flights_per_season(International_Report_Departures)
 ```
-**Interpretation:** 
-The aggregated math explicitly validates what the heathen map hinted at: Summer carries the dominant load of historical international volumes, with Winter naturally dragging functionally lower due to holiday freezes and school schedules.
 
----
+**Interpretation:** The aggregated math explicitly validates what the heathen map hinted at: Summer carries the dominant load of historical international volumes, with Winter naturally dragging functionally lower due to holiday freezes and school schedules.
+
+------------------------------------------------------------------------
 
 # Week 4: Baseline Modeling
 
@@ -357,8 +345,7 @@ We now step away from historical visualization into explicit forward-looking Pre
 
 ## 4.1 Data Preparation and Splitting
 
-**Purpose of this step:**
-To effectively train reliable Machine Learning algorithms without instantly crashing the processor, we extract a functional randomized subset of `25,000` samples. We also must divide this into a completely separate **Train Set** (to teach the math) and a **Test Set** (to evaluate if the math holds true on unseen future data).
+**Purpose of this step:** To effectively train reliable Machine Learning algorithms without instantly crashing the processor, we extract a functional randomized subset of `25,000` samples. We also must divide this into a completely separate **Train Set** (to teach the math) and a **Test Set** (to evaluate if the math holds true on unseen future data).
 
 *Crucial Architecture Note:* We are utilizing low-cardinality predictors (`Year`, `Month`, `carriergroup`) rather than individual airports to prevent the algorithm from collapsing under "Unseen Factor Level" errors during prediction scoring! We also actively `.drop_na()` to resolve mathematical crashes.
 
@@ -397,8 +384,7 @@ test_data <- test_data %>%
 
 ## 4.2 Baseline Regression (Linear Model)
 
-**Purpose of this step:**
-This serves as our simplest numerical benchmark. Can we draw a straight line (`lm`) effectively mapping `Year`, `Month`, and `Carrier` to raw Flight volume?
+**Purpose of this step:** This serves as our simplest numerical benchmark. Can we draw a straight line (`lm`) effectively mapping `Year`, `Month`, and `Carrier` to raw Flight volume?
 
 ```{r}
 #| label: baseline-reg
@@ -415,8 +401,7 @@ cat("Linear Regression Benchmark RMSE:", format(rmse_lm, digits=3), "\n")
 
 ## 4.3 Baseline Classification (Logistic Regression)
 
-**Purpose of this step:**
-Rather than predicting an exact number, we simplify the problem: Can we predict a distinct *Category* (`High_Traffic` - Yes or No)? We utilize a `glm(family="binomial")` to build this S-curve classification boundary!
+**Purpose of this step:** Rather than predicting an exact number, we simplify the problem: Can we predict a distinct *Category* (`High_Traffic` - Yes or No)? We utilize a `glm(family="binomial")` to build this S-curve classification boundary!
 
 ```{r}
 #| label: baseline-class
@@ -437,7 +422,7 @@ conf_matrix_logistic$table
 cat("Logistic Regression Benchmark Accuracy:", format(conf_matrix_logistic$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # Week 5: Advanced Modeling
 
@@ -445,8 +430,7 @@ Linear models struggle with complex groupings. We attempt tree-based mapping.
 
 ## 5.1 Simple Decision Tree
 
-**Purpose of this step:**
-A decision tree uses distinct "splits" (if X > value then go left, else go right) allowing for naturally chaotic non-linear data to map to High Traffic routes.
+**Purpose of this step:** A decision tree uses distinct "splits" (if X \> value then go left, else go right) allowing for naturally chaotic non-linear data to map to High Traffic routes.
 
 ```{r}
 #| label: adv-dt
@@ -462,12 +446,12 @@ dt_classes <- predict(dt_model, test_data, type = "class")
 dt_conf_matrix <- confusionMatrix(dt_classes, test_data$High_Traffic)
 cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
+
 **Interpretation:** By viewing the graphical map, we immediately see that if `carriergroup` corresponds to a foreign registry or regional group rather than domestic giants, it fundamentally routes into differing volume outputs!
 
 ## 5.2 Random Forest Assembly
 
-**Purpose of this step:**
-A single tree often memorizes noise (overfits). A `Random Forest` generates hundreds of slightly different trees and takes their average vote, heavily mitigating failure.
+**Purpose of this step:** A single tree often memorizes noise (overfits). A `Random Forest` generates hundreds of slightly different trees and takes their average vote, heavily mitigating failure.
 
 ```{r}
 #| label: adv-rf
@@ -482,16 +466,16 @@ rf_classes <- factor(ifelse(rf_probs > 0.5, "Yes", "No"), levels=c("No", "Yes"))
 rf_conf_matrix <- confusionMatrix(rf_classes, test_data$High_Traffic)
 cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
+
 **Interpretation:** The accuracy score immediately jumps past basic linear mechanics verifying that complex interactions do exist natively in aviation behavior.
 
----
+------------------------------------------------------------------------
 
 # Week 6: Model Evaluation
 
 ## 6.1 Feature Importance Plots
 
-**Purpose of this step:**
-Because the Random Forest is a "Black Box" (hard to read), we have it output essentially what features were the most heavily requested across its 500 decision trees to isolate our most critical business vectors.
+**Purpose of this step:** Because the Random Forest is a "Black Box" (hard to read), we have it output essentially what features were the most heavily requested across its 500 decision trees to isolate our most critical business vectors.
 
 ```{r}
 #| label: feature-importance
@@ -509,8 +493,7 @@ ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
 
 ## 6.2 Receiver Operating Characteristics (ROC Curve)
 
-**Purpose of this step:**
-The ROC curve maps how effectively a model separates True Positives from False Positives across *all* thresholds (not just the arbitrary 50% cutoff limit we hardcoded earlier). The area under this curve (AUC) represents perfection.
+**Purpose of this step:** The ROC curve maps how effectively a model separates True Positives from False Positives across *all* thresholds (not just the arbitrary 50% cutoff limit we hardcoded earlier). The area under this curve (AUC) represents perfection.
 
 ```{r}
 #| label: roc-curve
@@ -525,21 +508,17 @@ legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic),
                                  paste("Random Forest (AUC=", round(auc(roc_rf), 2), ")")), 
        col = c("blue", "red"), lwd = 3)
 ```
-**Interpretation:** The algorithm tracing furthest toward the upper left corner carries supreme diagnostic ability. Here we see the Random Forest heavily outperforms standard static thresholds. 
 
----
+**Interpretation:** The algorithm tracing furthest toward the upper left corner carries supreme diagnostic ability. Here we see the Random Forest heavily outperforms standard static thresholds.
+
+------------------------------------------------------------------------
 
 # Week 7: Final Conclusion and Real-World Reporting
 
 ## Analytical Report & Real-World Application
 
-**Data Quality and Discovery:**
-We established that the Aviation dataset remains robust. EDA rapidly established severe, repeating macroscopic trends verifying the dominant force of mid-summer (July/August) vacation transit over general industry capacity, leaning overwhelmingly outbound through only a massive handful of coastal hubs. 
+**Data Quality and Discovery:** We established that the Aviation dataset remains robust. EDA rapidly established severe, repeating macroscopic trends verifying the dominant force of mid-summer (July/August) vacation transit over general industry capacity, leaning overwhelmingly outbound through only a massive handful of coastal hubs.
 
-**Model Architecture Outcomes:**
-By applying Machine Learning mapping architectures, we validated that you cannot build linear mappings against aviation volumes due to dimensional variance in Regional carrier operations. `Linear/Logistic Regression` hit hard accuracy walls heavily lagging behind structured ensemble nodes via `Random Forests`. 
-The `Decision Tree` architecture cleanly verified via graphical rendering that Carrier/Group configurations immediately dictate network densities before temporal variants (Year/Month) even get evaluated.
+**Model Architecture Outcomes:** By applying Machine Learning mapping architectures, we validated that you cannot build linear mappings against aviation volumes due to dimensional variance in Regional carrier operations. `Linear/Logistic Regression` hit hard accuracy walls heavily lagging behind structured ensemble nodes via `Random Forests`. The `Decision Tree` architecture cleanly verified via graphical rendering that Carrier/Group configurations immediately dictate network densities before temporal variants (Year/Month) even get evaluated.
 
-**Business Application:**
-Logistics procurement and ground-handling deployment can utilize the resulting `Random Forest` mapping structure. Rather than blanketing all gates equally, operations can pass future Carrier/Seasonal timelines directly through the model to immediately verify if route clusters will tip beyond median traffic volume (`High_Traffic` thresholds) and proactively pre-schedule personnel dynamically. 
-
+**Business Application:** Logistics procurement and ground-handling deployment can utilize the resulting `Random Forest` mapping structure. Rather than blanketing all gates equally, operations can pass future Carrier/Seasonal timelines directly through the model to immediately verify if route clusters will tip beyond median traffic volume (`High_Traffic` thresholds) and proactively pre-schedule personnel dynamically.
