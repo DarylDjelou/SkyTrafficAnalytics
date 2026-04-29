@@ -202,7 +202,7 @@ Are flights influenced by the time of year? A 2D Heatmap maps `Month` against `Y
 departures_by_month <- International_Report_Departures %>%
   group_by(Year, Month) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE), .groups="drop")
-
+```
 ## Departures by Airport
 
 ```{r}
@@ -211,8 +211,8 @@ departures_by_origin <- International_Report_Departures %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
 departures_by_origin
 ```
-
 ```{r}
+
 departures_by_dest <- International_Report_Departures %>%
   group_by(fg_apt) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
