@@ -113,11 +113,11 @@ check_missing_values(International_Report_Passengers)
 filtered_data <- subset(International_Report_Departures, Year >= 2000 & Year <= 2011)
 
 ggplot(filtered_data, aes(x = factor(Year), y = Total)) +
-  geom_boxplot(fill="lightgreen", outlier.color = "red", outlier.shape = 1) +
-  labs(title = "Distribution of Departures by Year (2000-2011)", x = "Year", y = "Total Departures") +
-  theme_minimal() +
-  # Zooming the Y axis to cleanly see the box distribution while letting outliers sit above
-  coord_cartesian(ylim = c(0, 500)) 
+  geom_boxplot(fill = "lightblue", outlier.color = "red", outlier.shape = 1) +
+  labs(title = "Distribution of Departures by Year (2000-2011)",
+       x = "Year", y = "Total Departures (log scale)") +
+  scale_y_log10(labels = scales::comma) +
+  theme_minimal()
 ```
 
 **Interpretation:** The red visual dots represent statistical outliers (routes with exceptionally huge activity like NYC to London). The boxes themselves show that the central median of flight routes rests tightly below 50 departures per month, per route.
