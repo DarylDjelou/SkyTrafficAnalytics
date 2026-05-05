@@ -363,11 +363,9 @@ visualize_flights_per_season <- function(df) {
 visualize_flights_per_season(International_Report_Departures)
 ```
 
-<<<<<<< HEAD
+
 **Interpretation:** The aggregated math explicitly validates what the heathen map hinted at: Summer carries the dominant load of historical international volumes, with Winter naturally dragging functionally lower due to holiday freezes and school schedules.
 
-------------------------------------------------------------------------
-=======
 # label: correlation-matrix
 
 numeric_data <- International_Report_Departures %>%
