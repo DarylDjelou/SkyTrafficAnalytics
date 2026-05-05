@@ -122,7 +122,7 @@ ggplot(filtered_data, aes(x = factor(Year), y = Total)) +
 
 **Interpretation:** The red visual dots represent statistical outliers (routes with exceptionally huge activity like NYC to London). The boxes themselves show that the central median of flight routes rests tightly below 50 departures per month, per route.
 
-
+```{r}
 #| label: summary-stats
 summary(International_Report_Departures$Total)
 
@@ -134,10 +134,11 @@ International_Report_Departures %>%
     Min = min(Total, na.rm = TRUE),
     Max = max(Total, na.rm = TRUE)
   )
+```
+
 **Interpretation:**  
 The summary statistics confirm a heavily right-skewed distribution, where a small number of routes contribute disproportionately high traffic volumes. This justifies the later use of log transformation in modeling.
----
->>>>>>> refs/remotes/origin/main
+
 
 # Week 2-3: Exploratory Data Analysis (EDA) and Visualization
 
@@ -198,6 +199,7 @@ departures_by_month <- International_Report_Departures %>%
 ```
 ## Departures by Airport
 
+```{r}
 departures_by_origin <- International_Report_Departures %>%
   group_by(usg_apt) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
@@ -365,8 +367,8 @@ visualize_flights_per_season(International_Report_Departures)
 
 
 **Interpretation:** The aggregated math explicitly validates what the heathen map hinted at: Summer carries the dominant load of historical international volumes, with Winter naturally dragging functionally lower due to holiday freezes and school schedules.
-
-# label: correlation-matrix
+```{r}
+#| label: correlation-matrix
 
 numeric_data <- International_Report_Departures %>%
   select(Year, Month, Total)
@@ -376,12 +378,11 @@ cor_matrix
 
 library(ggcorrplot)
 ggcorrplot(cor_matrix, lab = TRUE)
+```
 
 **Interpretation:**  
 The correlation matrix shows weak linear relationships between variables, reinforcing the need for non-linear models such as Decision Trees and Random Forests.
 
----
->>>>>>> refs/remotes/origin/main
 
 # Week 4: Baseline Modeling
 
@@ -515,14 +516,6 @@ cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Acc
 
 **Interpretation:** The accuracy score immediately jumps past basic linear mechanics verifying that complex interactions do exist natively in aviation behavior.
 
-<<<<<<< HEAD
-------------------------------------------------------------------------
-=======
-
-
----
->>>>>>> refs/remotes/origin/main
-
 # Week 6: Model Evaluation
 
 ## 6.1 Feature Importance Plots
@@ -561,15 +554,44 @@ legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic),
        col = c("blue", "red"), lwd = 3)
 ```
 
-<<<<<<< HEAD
 **Interpretation:** The algorithm tracing furthest toward the upper left corner carries supreme diagnostic ability. Here we see the Random Forest heavily outperforms standard static thresholds.
 
-------------------------------------------------------------------------
-=======
+## 6.3 Comprehensive Model Comparison
 
+**Purpose of this step:** To summarize the predictive capabilities of our developed models, we compare their primary performance metrics, including Accuracy and Kappa statistics, to formally declare the most effective classification architecture.
 
----
->>>>>>> refs/remotes/origin/main
+```{r}
+#| label: model-comparison
+# Consolidating metrics into a comparative dataframe
+model_comparison <- data.frame(
+  Model = c("Logistic Regression", "Decision Tree", "Random Forest"),
+  Accuracy = c(
+    conf_matrix_logistic$overall['Accuracy'],
+    dt_conf_matrix$overall['Accuracy'],
+    rf_conf_matrix$overall['Accuracy']
+  ),
+  Kappa = c(
+    conf_matrix_logistic$overall['Kappa'],
+    dt_conf_matrix$overall['Kappa'],
+    rf_conf_matrix$overall['Kappa']
+  )
+)
+
+# Output a clean table
+knitr::kable(model_comparison, digits = 4, caption = "Model Performance Comparison")
+
+# Render comparison plot
+ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = Model)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(title = "Classification Model Accuracy Comparison",
+       x = "Model Architecture",
+       y = "Accuracy") +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))
+```
+
+**Interpretation:** The aggregate comparison unequivocally demonstrates that while Logistic Regression establishes a functional baseline, the Random Forest ensemble architecture provides the highest predictive accuracy for classifying high-traffic flight routes. This proves the value of nonlinear decision boundaries when working with categorical aviation data.
 
 # Week 7: Final Conclusion and Real-World Reporting
 
