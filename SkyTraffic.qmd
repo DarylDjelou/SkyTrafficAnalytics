@@ -43,7 +43,7 @@ This dataset allows for analysis of global aviation trends, seasonal demand, and
 
 # Week 1: Defining the Scope and Understanding the Data
 
-## 1.1 Loading the Dataset
+## Loading the Dataset
 
 **Purpose of this step:** Before we can process the data, we must bring our required software libraries into the R environment. We utilize `readr` for fast CSV imports, `dplyr` for data wrangling, `ggplot2` for plotting, and `caret`/`ranger` for predictive analytics later.
 
@@ -68,7 +68,7 @@ International_Report_Passengers <- read_csv("International_Report_Passengers.csv
 International_Report_Passengers
 ```
 
-## 1.2 Data Verification and Dictionary Mapping
+## Data Verification and Dictionary Mapping
 
 **Purpose of this step:** We must inspect the dimensions (rows/columns) and variable data types to determine our target variable and map our features.
 
@@ -83,7 +83,7 @@ cat("Dataset Dimensions:", dim(International_Report_Departures), "\n")
 glimpse(International_Report_Departures)
 ```
 
-## 1.3 Handling Missing Values
+## Handling Missing Values
 
 **Purpose of this step:** Machine learning models (like Random Forests or Linear regressions) naturally fail or crash when they encounter `NA` (missing) values because they cannot compute mathematical equations with blanks. Here, we build a function to scan every column.
 
@@ -102,7 +102,7 @@ check_missing_values(International_Report_Passengers)
 
 **Interpretation:** Our scan returned almost exclusively `0`s across most major variables, proving the sheer structural integrity and completeness of the US Aviation dataset. However, we note that the `carrier` column contains roughly 3,000 missing values across both datasets, which we will handle by utilizing `.drop_na()` prior to modeling.
 
-## 1.4 Checking for Outliers
+## Checking for Outliers
 
 **Purpose of this step:** Outliers can heavily skew the calculated "Mean" and fundamentally damage Regression coefficients. We build a dynamic Boxplot function to visually detect the spread and extremities of our data over a filtered timeframe.
 
@@ -145,7 +145,7 @@ The summary statistics confirm a heavily right-skewed distribution, where a smal
 
 In this stage, we transition from examining raw row data into discovering underlying temporal and structural patterns.
 
-## 2.1 Trend Analysis over Time
+## Trend Analysis over Time
 
 **Purpose of this step:** By aggregating the total flight departures specifically by `Year`, we can visualize the macroeconomic trajectory of the aviation industry and detect drops from worldwide crises.
 
@@ -166,7 +166,7 @@ ggplot(departures_by_year, aes(x = Year, y = TotalDepartures)) +
 
 **Interpretation:** We observe steady, massive continuous growth decade-over-decade, completely undisturbed except for immediate systemic drops reflecting historical global events.
 
-## 2.2 Analyzing Top Origin Hubs
+## Analyzing Top Origin Hubs
 
 **Purpose of this step:** Not all airports are equal. We extract the top 10 highest-volume Gateway Airports (`usg_apt`) to understand which cities actually push international numbers.
 
@@ -188,7 +188,7 @@ ggplot(departures_by_origin, aes(x = reorder(usg_apt, TotalDepartures), y = Tota
 
 **Interpretation:** MIA (Miami), JFK (New York), and LAX (Los Angeles) dominate international traffic. They act as coastal launch-pads, meaning any infrastructure forecasting should weigh these three drastically higher than inland routes.
 
-## 2.3 Visualizing Seasonality (Heatmap)
+## Visualizing Seasonality (Heatmap)
 
 **Purpose of this step:** Are flights influenced by the time of year? A 2D Heatmap maps `Month` against `Year` to expose any repetitive behavioral patterns.
 
@@ -314,7 +314,7 @@ ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = Tota
 
 **Interpretation:** The heatmap clearly exhibits bright vertical streaks localized on months 7 and 8 (July and August) continuously persisting down throughout history. This perfectly visualizes summer travel spikes.
 
-## 2.4 Feature Engineering Seasonal Transformation
+## Feature Engineering Seasonal Transformation
 
 **Purpose of this step:** We mathematically feature-engineer a brand new column named `Season` based on specific months, to effectively group our data into four major physical seasons for easier interpretation.
 
@@ -383,14 +383,14 @@ ggcorrplot(cor_matrix, lab = TRUE)
 ```
 
 **Interpretation:**  
-The correlation matrix shows weak linear relationships between variables, reinforcing the need for non-linear models such as Decision Trees and Random Forests.
+The correlation matrix shows weak linear relationships between these specific temporal variables (Year, Month) and flight volume, indicating that we will need stronger operational predictors (such as passenger load) to accurately model the data.
 
 
 # Week 4: Baseline Modeling
 
 We now step away from historical visualization into explicit forward-looking Predictive Modeling.
 
-## 4.1 Data Preparation and Splitting
+## Data Preparation and Splitting
 
 **Purpose of this step:** To effectively train reliable Machine Learning algorithms without instantly crashing the processor, we extract a functional randomized subset of `25,000` samples. We also must divide this into a completely separate **Train Set** (to teach the math) and a **Test Set** (to evaluate if the math holds true on unseen future data).
 
@@ -450,7 +450,7 @@ test_data <- test_data %>%
          Top_Hub %in% unique(train_data$Top_Hub)) 
 ```
 
-## 4.2 Baseline Regression (Linear Model)
+## Baseline Regression (Linear Model)
 
 **Purpose of this step:** This serves as our simplest numerical benchmark. Can we draw a straight line (`lm`) effectively mapping `Year`, `Month`, and `Carrier` to raw Flight volume?
 
@@ -467,7 +467,7 @@ rmse_lm <- sqrt(mean((test_data$LogTotal - lm_preds)^2))
 cat("Linear Regression Benchmark RMSE:", format(rmse_lm, digits=3), "\n")
 ```
 
-## 4.3 Baseline Classification (Logistic Regression)
+## Baseline Classification (Logistic Regression)
 
 **Purpose of this step:** Rather than predicting an exact number, we simplify the problem: Can we predict a distinct *Category* (`High_Traffic` - Yes or No)? We utilize a `glm(family="binomial")` to build this S-curve classification boundary!
 
@@ -498,7 +498,7 @@ The Logistic Regression model establishes an incredibly strong baseline, achievi
 
 Linear models struggle with complex groupings. We attempt tree-based mapping.
 
-## 5.1 Simple Decision Tree
+## Simple Decision Tree
 
 **Purpose of this step:** A decision tree uses distinct "splits" (if X \> value then go left, else go right) allowing for naturally chaotic non-linear data to map to High Traffic routes.
 
@@ -519,7 +519,7 @@ cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] *
 
 **Interpretation:** By viewing the graphical map, we immediately see that `Total_Passengers` and `Load_Factor` dictate the primary decision boundaries, reinforcing that route volume is fundamentally driven by passenger demand metrics! However, the Decision Tree achieves an accuracy of 93.56%, which is slightly lower than our linear baseline.
 
-## 5.2 Random Forest Assembly
+## Random Forest Assembly
 
 **Purpose of this step:** A single tree often memorizes noise (overfits). A `Random Forest` generates hundreds of slightly different trees and takes their average vote, heavily mitigating failure.
 
@@ -540,7 +540,7 @@ cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Acc
 
 **Interpretation:** The Random Forest ensemble achieves a high accuracy score of 94.35%. However, interestingly, this does *not* jump past our basic linear mechanics (94.64%), indicating that the additional complexity of the forest may be slightly overfitting to noise rather than finding deeper patterns.
 
-## 5.3 Gradient Boosting (XGBoost)
+## Gradient Boosting (XGBoost)
 
 **Purpose of this step:** XGBoost iteratively trains decision trees to minimize errors of previous trees, often yielding superior accuracy on tabular data.
 
@@ -571,7 +571,7 @@ cat("XGBoost Accuracy Score:", format(xgb_conf_matrix$overall['Accuracy'] * 100,
 
 # Week 6: Model Evaluation
 
-## 6.1 Feature Importance Plots
+## Feature Importance Plots
 
 **Purpose of this step:** Because the Random Forest is a "Black Box" (hard to read), we have it output essentially what features were the most heavily requested across its 500 decision trees to isolate our most critical business vectors.
 
@@ -589,7 +589,7 @@ ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
   theme_minimal()
 ```
 
-## 6.2 Receiver Operating Characteristics (ROC Curve)
+## Receiver Operating Characteristics (ROC Curve)
 
 **Purpose of this step:** The ROC curve maps how effectively a model separates True Positives from False Positives across *all* thresholds (not just the arbitrary 50% cutoff limit we hardcoded earlier). The area under this curve (AUC) represents perfection.
 
@@ -611,7 +611,8 @@ legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic),
 ```
 
 **Interpretation:** As we can observe, all the models perform very similarly on the ROC curve, with all AUC values being close to 0.98, indicating outstanding classification performance across the board. While ensemble models are highly capable, Logistic Regression matches their diagnostic ability perfectly, proving that complex non-linear models are not strictly necessary here.
-## 6.3 Comprehensive Model Comparison
+
+## Comprehensive Model Comparison
 
 **Purpose of this step:** To summarize the predictive capabilities of our developed models, we compare their primary performance metrics, including Accuracy and Kappa statistics, to formally declare the most effective classification architecture.
 
@@ -650,7 +651,7 @@ ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = 
 
 **Interpretation:** The aggregate comparison unequivocally demonstrates that while Random Forest gives us good accuracy, the Logistic Regression model provides the highest predictive accuracy for classifying high-traffic flight routes. This highlights the effectiveness of linear decision boundaries when working with categorical aviation data.
 
-# Week 7: Final Conclusion and Real-World Reporting
+# Final Conclusion and Real-World Reporting
 
 ## Analytical Report & Real-World Application
 
