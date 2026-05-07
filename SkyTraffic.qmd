@@ -647,7 +647,7 @@ ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = 
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))
 ```
 
-**Interpretation:** The aggregate comparison unequivocally demonstrates that while Logistic Regression establishes a functional baseline, the Random Forest ensemble architecture provides the highest predictive accuracy for classifying high-traffic flight routes. This proves the value of nonlinear decision boundaries when working with categorical aviation data.
+**Interpretation:** The aggregate comparison unequivocally demonstrates that while Random Forest gives us good accuracy, the Logistic Regression model provides the highest predictive accuracy for classifying high-traffic flight routes. This highlights the effectiveness of linear decision boundaries when working with categorical aviation data.
 
 # Week 7: Final Conclusion and Real-World Reporting
 
