@@ -58,6 +58,7 @@ library(rpart)
 library(rpart.plot)
 library(ranger)
 library(pROC)
+library(xgboost)
 
 # Reading the structural datasets from our local directory
 International_Report_Departures <- read_csv("International_Report_Departures.csv")
@@ -348,16 +349,17 @@ visualize_flights_per_season <- function(df) {
   p1 <- ggplot(departures_by_season_sum, aes(x = Season, y = Total, fill = Season)) +
     geom_col() +
     scale_fill_manual(values = season_colors) +
-    labs(title = "Sum of Flights Distributed by Real-World Seasons", x = "Season", y = "Aggregated Flights") +
+    labs(title = "Sum of Flights Distributed\nby Real-World Seasons", x = "Season", y = "Aggregated Flights") +
     theme_minimal() +
-    theme(legend.position = "none")
+    theme(legend.position = "none", plot.title = element_text(size = 11))
 
   p2 <- ggplot(departures_by_season, aes(x = Year, y = Total, color = Season)) +
     geom_line(size = 1) +
     geom_point(size = 2) +
     scale_color_manual(values = season_colors) +
     labs(title = "Seasonal Flights Over Time", x = "Year", y = "Total Flights") +
-    theme_minimal()
+    theme_minimal() +
+    theme(plot.title = element_text(size = 11))
   
   print(p1 + p2)
 }
@@ -399,20 +401,39 @@ We now step away from historical visualization into explicit forward-looking Pre
 set.seed(42) # Lock randomization
 
 # Build modeling data
+top_hubs <- c("MIA", "JFK", "LAX", "ORD", "EWR", "ATL", "IAH", "SFO", "DFW", "BOS")
+
+# Aggregate passengers
+pass_agg <- International_Report_Passengers %>%
+  group_by(Year, Month, usg_apt, fg_apt, carrier) %>%
+  summarise(Total_Passengers = sum(Total, na.rm = TRUE), .groups = "drop")
+
 model_data <- International_Report_Departures %>%
-  drop_na(Total, Year, Month, carriergroup) %>%        # Fix Error 1: Clear missing predictors to prevent model crash
+  drop_na(Total, Year, Month, carriergroup, usg_apt, fg_apt, carrier) %>%        # Fix Error 1: Clear missing predictors to prevent model crash
   filter(Total > 0) %>%
+  left_join(pass_agg, by = c("Year", "Month", "usg_apt", "fg_apt", "carrier")) %>%
+  mutate(Total_Passengers = replace_na(Total_Passengers, 0)) %>%
+  mutate(Load_Factor = Total_Passengers / Total) %>%
   # Target 1 (Classification): Is this route a High Traffic route?
   mutate(High_Traffic = factor(ifelse(Total > median(Total), "Yes", "No"), levels=c("No", "Yes"))) %>%
   # Target 2 (Regression): Predicting specific volumes. Log removes exponential skew.
   mutate(LogTotal = log(Total)) %>%
+  mutate(Season = case_when(
+    Month %in% c(12, 1, 2) ~ "Winter",
+    Month %in% c(3, 4, 5)  ~ "Spring",
+    Month %in% c(6, 7, 8)  ~ "Summer",
+    Month %in% c(9, 10, 11) ~ "Autumn"
+  )) %>%
+  mutate(Top_Hub = ifelse(usg_apt %in% top_hubs, usg_apt, "Other")) %>%
   sample_n(25000)
 
 # Select isolated features
 model_df <- model_data %>%
-  select(LogTotal, High_Traffic, Year, Month, carriergroup) %>%
+  select(LogTotal, High_Traffic, Year, Month, Season, Top_Hub, carriergroup, Total_Passengers, Load_Factor) %>%
   mutate(
     Month = factor(Month),
+    Season = factor(Season),
+    Top_Hub = factor(Top_Hub),
     carriergroup = factor(carriergroup)
   )
 
@@ -424,7 +445,9 @@ test_data <- model_df[-train_idx, ]
 # Fix Error 2: Eliminating Unseen Categories completely
 test_data <- test_data %>%
   filter(carriergroup %in% unique(train_data$carriergroup),
-         Month %in% unique(train_data$Month)) 
+         Month %in% unique(train_data$Month),
+         Season %in% unique(train_data$Season),
+         Top_Hub %in% unique(train_data$Top_Hub)) 
 ```
 
 ## 4.2 Baseline Regression (Linear Model)
@@ -434,7 +457,7 @@ test_data <- test_data %>%
 ```{r}
 #| label: baseline-reg
 # Teach the Model on Training Set
-baseline_lm <- lm(LogTotal ~ Year + Month + carriergroup, data = train_data)
+baseline_lm <- lm(LogTotal ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, data = train_data)
 
 # Test the model on the held-out Test Set
 lm_preds <- predict(baseline_lm, newdata = test_data)
@@ -451,7 +474,7 @@ cat("Linear Regression Benchmark RMSE:", format(rmse_lm, digits=3), "\n")
 ```{r}
 #| label: baseline-class
 # Train Logistic Classifier on Train set
-baseline_log_reg <- glm(High_Traffic ~ Year + Month + carriergroup, 
+baseline_log_reg <- glm(High_Traffic ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, 
                         data = train_data, family = "binomial")
 
 # Score Test Set yielding Probability vectors (0.0 to 1.0 likelihood)
@@ -482,7 +505,7 @@ Linear models struggle with complex groupings. We attempt tree-based mapping.
 ```{r}
 #| label: adv-dt
 # rpart stands for Recursive Partitioning (Decision Trees)
-dt_model <- rpart(High_Traffic ~ Year + Month + carriergroup, 
+dt_model <- rpart(High_Traffic ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, 
                   data = train_data, method = "class", cp=0.005)
 
 # Render graphical version of the engine splits
@@ -503,8 +526,9 @@ cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] *
 ```{r}
 #| label: adv-rf
 # Using ranger library for fast Random Forest execution
-rf_model <- ranger(High_Traffic ~ Year + Month + carriergroup, 
-                   data = train_data, importance = "impurity", probability = TRUE)
+rf_model <- ranger(High_Traffic ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, 
+                   data = train_data, importance = "impurity", probability = TRUE,
+                   num.trees = 1000, mtry = 3)
 
 # Secure the specific "Yes" probability column output
 rf_probs <- predict(rf_model, test_data)$predictions[, "Yes"]
@@ -515,6 +539,33 @@ cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Acc
 ```
 
 **Interpretation:** The accuracy score immediately jumps past basic linear mechanics verifying that complex interactions do exist natively in aviation behavior.
+
+## 5.3 Gradient Boosting (XGBoost)
+
+**Purpose of this step:** XGBoost iteratively trains decision trees to minimize errors of previous trees, often yielding superior accuracy on tabular data.
+
+```{r}
+#| label: adv-xgb
+# Prepare data for XGBoost (requires numeric matrices)
+# Convert factors to dummy variables
+dummy_model <- dummyVars(~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, data = train_data)
+train_matrix <- predict(dummy_model, newdata = train_data)
+test_matrix <- predict(dummy_model, newdata = test_data)
+
+# Factor targets
+train_label <- train_data$High_Traffic
+test_label <- test_data$High_Traffic
+
+xgb_model <- xgboost(x = as.matrix(train_matrix), y = train_label, 
+                     nrounds = 100, objective = "binary:logistic",
+                     eta = 0.1, max_depth = 6)
+
+xgb_probs <- predict(xgb_model, newdata = as.matrix(test_matrix))
+xgb_classes <- factor(ifelse(xgb_probs > 0.5, "Yes", "No"), levels=c("No", "Yes"))
+
+xgb_conf_matrix <- confusionMatrix(xgb_classes, test_data$High_Traffic)
+cat("XGBoost Accuracy Score:", format(xgb_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
+```
 
 # Week 6: Model Evaluation
 
@@ -545,13 +596,16 @@ ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
 # Map responses
 roc_logistic <- roc(test_data$High_Traffic, log_probs, levels=c("No", "Yes"))
 roc_rf <- roc(test_data$High_Traffic, rf_probs, levels=c("No", "Yes"))
+roc_xgb <- roc(test_data$High_Traffic, xgb_probs, levels=c("No", "Yes"))
 
 # Render overlapping graphs
 plot(roc_logistic, col = "blue", main = "Multi-Model Threshold ROC Assessment", lwd=2)
 plot(roc_rf, col = "red", add = TRUE, lwd=2)
+plot(roc_xgb, col = "green", add = TRUE, lwd=2)
 legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic), 2), ")"), 
-                                 paste("Random Forest (AUC=", round(auc(roc_rf), 2), ")")), 
-       col = c("blue", "red"), lwd = 3)
+                                 paste("Random Forest (AUC=", round(auc(roc_rf), 2), ")"),
+                                 paste("XGBoost (AUC=", round(auc(roc_xgb), 2), ")")), 
+       col = c("blue", "red", "green"), lwd = 3)
 ```
 
 **Interpretation:** The algorithm tracing furthest toward the upper left corner carries supreme diagnostic ability. Here we see the Random Forest heavily outperforms standard static thresholds.
@@ -564,16 +618,18 @@ legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic),
 #| label: model-comparison
 # Consolidating metrics into a comparative dataframe
 model_comparison <- data.frame(
-  Model = c("Logistic Regression", "Decision Tree", "Random Forest"),
+  Model = c("Logistic Regression", "Decision Tree", "Random Forest", "XGBoost"),
   Accuracy = c(
     conf_matrix_logistic$overall['Accuracy'],
     dt_conf_matrix$overall['Accuracy'],
-    rf_conf_matrix$overall['Accuracy']
+    rf_conf_matrix$overall['Accuracy'],
+    xgb_conf_matrix$overall['Accuracy']
   ),
   Kappa = c(
     conf_matrix_logistic$overall['Kappa'],
     dt_conf_matrix$overall['Kappa'],
-    rf_conf_matrix$overall['Kappa']
+    rf_conf_matrix$overall['Kappa'],
+    xgb_conf_matrix$overall['Kappa']
   )
 )
 
