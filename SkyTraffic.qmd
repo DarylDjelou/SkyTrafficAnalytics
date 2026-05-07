@@ -517,7 +517,7 @@ dt_conf_matrix <- confusionMatrix(dt_classes, test_data$High_Traffic)
 cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
 
-**Interpretation:** By viewing the graphical map, we immediately see that if `carriergroup` corresponds to a foreign registry or regional group rather than domestic giants, it fundamentally routes into differing volume outputs! However, the Decision Tree achieves an accuracy of 93.56%, which is slightly lower than our linear baseline.
+**Interpretation:** By viewing the graphical map, we immediately see that `Total_Passengers` and `Load_Factor` dictate the primary decision boundaries, reinforcing that route volume is fundamentally driven by passenger demand metrics! However, the Decision Tree achieves an accuracy of 93.56%, which is slightly lower than our linear baseline.
 
 ## 5.2 Random Forest Assembly
 
@@ -656,6 +656,6 @@ ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = 
 
 **Data Quality and Discovery:** We established that the Aviation dataset remains robust. EDA rapidly established severe, repeating macroscopic trends verifying the dominant force of mid-summer (July/August) vacation transit over general industry capacity, leaning overwhelmingly outbound through only a massive handful of coastal hubs.
 
-**Model Architecture Outcomes:** By applying Machine Learning mapping architectures, we validated that the inclusion of passenger data (`Total_Passengers` and `Load_Factor`) completely linearizes the prediction space. The `Logistic Regression` architecture achieved the highest predictive accuracy (94.64%), outperforming complex ensemble nodes like `Random Forests` and `XGBoost`. The `Decision Tree` architecture verified that while carrier configurations are important, linear models are perfectly capable of handling them.
+**Model Architecture Outcomes:** By applying Machine Learning mapping architectures, we validated that the inclusion of passenger data (`Total_Passengers` and `Load_Factor`) completely linearizes the prediction space. The `Logistic Regression` architecture achieved the highest predictive accuracy (94.64%), outperforming complex ensemble nodes like `Random Forests` and `XGBoost`. The `Decision Tree` architecture visually verified that passenger load metrics are the overwhelmingly dominant predictors, effectively overriding older carrier-based configurations.
 
 **Business Application:** Logistics procurement and ground-handling deployment can utilize the resulting `Logistic Regression` mapping structure. Rather than blanketing all gates equally, operations can pass future passenger and seasonal timelines directly through this lightweight, highly interpretable model to verify if route clusters will tip beyond median traffic volume (`High_Traffic` thresholds) and proactively pre-schedule personnel dynamically.
