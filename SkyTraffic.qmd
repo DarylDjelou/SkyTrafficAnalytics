@@ -100,7 +100,7 @@ check_missing_values(International_Report_Departures)
 check_missing_values(International_Report_Passengers)
 ```
 
-**Interpretation:** Our scan returned almost exclusively `0`s across all major variables, proving the sheer structural integrity and completeness of the US Aviation dataset. No mass-imputations (mean/mode replacing) are required!
+**Interpretation:** Our scan returned almost exclusively `0`s across most major variables, proving the sheer structural integrity and completeness of the US Aviation dataset. However, we note that the `carrier` column contains roughly 3,000 missing values across both datasets, which we will handle by utilizing `.drop_na()` prior to modeling.
 
 ## 1.4 Checking for Outliers
 
@@ -490,7 +490,7 @@ conf_matrix_logistic$table
 cat("Logistic Regression Benchmark Accuracy:", format(conf_matrix_logistic$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
 **Interpretation:**  
-The confusion matrix shows the model’s ability to correctly classify high-traffic routes. A high number of true positives and true negatives indicates strong predictive performance, while minimizing false classifications.
+The Logistic Regression model establishes an incredibly strong baseline, achieving an accuracy of 94.64%. The confusion matrix shows the model's high ability to correctly classify high-traffic routes with minimal false classifications, heavily driven by the new `Total_Passengers` and `Load_Factor` features.
 
 ------------------------------------------------------------------------
 
@@ -517,7 +517,7 @@ dt_conf_matrix <- confusionMatrix(dt_classes, test_data$High_Traffic)
 cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
 
-**Interpretation:** By viewing the graphical map, we immediately see that if `carriergroup` corresponds to a foreign registry or regional group rather than domestic giants, it fundamentally routes into differing volume outputs!
+**Interpretation:** By viewing the graphical map, we immediately see that if `carriergroup` corresponds to a foreign registry or regional group rather than domestic giants, it fundamentally routes into differing volume outputs! However, the Decision Tree achieves an accuracy of 93.56%, which is slightly lower than our linear baseline.
 
 ## 5.2 Random Forest Assembly
 
@@ -538,7 +538,7 @@ rf_conf_matrix <- confusionMatrix(rf_classes, test_data$High_Traffic)
 cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
 
-**Interpretation:** The accuracy score immediately jumps past basic linear mechanics verifying that complex interactions do exist natively in aviation behavior.
+**Interpretation:** The Random Forest ensemble achieves a high accuracy score of 94.35%. However, interestingly, this does *not* jump past our basic linear mechanics (94.64%), indicating that the additional complexity of the forest may be slightly overfitting to noise rather than finding deeper patterns.
 
 ## 5.3 Gradient Boosting (XGBoost)
 
@@ -566,6 +566,8 @@ xgb_classes <- factor(ifelse(xgb_probs > 0.5, "Yes", "No"), levels=c("No", "Yes"
 xgb_conf_matrix <- confusionMatrix(xgb_classes, test_data$High_Traffic)
 cat("XGBoost Accuracy Score:", format(xgb_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
+
+**Interpretation:** XGBoost performs excellently with a 94.51% accuracy. While highly competitive, it still slightly underperforms the simple Logistic Regression baseline, reinforcing that a linear mapping is exceptionally sufficient for this specific feature space.
 
 # Week 6: Model Evaluation
 
@@ -608,8 +610,7 @@ legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic),
        col = c("blue", "red", "green"), lwd = 3)
 ```
 
-**Interpretation:** The algorithm tracing furthest toward the upper left corner carries supreme diagnostic ability. Here we see the Random Forest heavily outperforms standard static thresholds.
-
+**Interpretation:** As we can observe, all the models perform very similarly on the ROC curve, with all AUC values being close to 0.98, indicating outstanding classification performance across the board. While ensemble models are highly capable, Logistic Regression matches their diagnostic ability perfectly, proving that complex non-linear models are not strictly necessary here.
 ## 6.3 Comprehensive Model Comparison
 
 **Purpose of this step:** To summarize the predictive capabilities of our developed models, we compare their primary performance metrics, including Accuracy and Kappa statistics, to formally declare the most effective classification architecture.
@@ -655,6 +656,6 @@ ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = 
 
 **Data Quality and Discovery:** We established that the Aviation dataset remains robust. EDA rapidly established severe, repeating macroscopic trends verifying the dominant force of mid-summer (July/August) vacation transit over general industry capacity, leaning overwhelmingly outbound through only a massive handful of coastal hubs.
 
-**Model Architecture Outcomes:** By applying Machine Learning mapping architectures, we validated that you cannot build linear mappings against aviation volumes due to dimensional variance in Regional carrier operations. `Linear/Logistic Regression` hit hard accuracy walls heavily lagging behind structured ensemble nodes via `Random Forests`. The `Decision Tree` architecture cleanly verified via graphical rendering that Carrier/Group configurations immediately dictate network densities before temporal variants (Year/Month) even get evaluated.
+**Model Architecture Outcomes:** By applying Machine Learning mapping architectures, we validated that the inclusion of passenger data (`Total_Passengers` and `Load_Factor`) completely linearizes the prediction space. The `Logistic Regression` architecture achieved the highest predictive accuracy (94.64%), outperforming complex ensemble nodes like `Random Forests` and `XGBoost`. The `Decision Tree` architecture verified that while carrier configurations are important, linear models are perfectly capable of handling them.
 
-**Business Application:** Logistics procurement and ground-handling deployment can utilize the resulting `Random Forest` mapping structure. Rather than blanketing all gates equally, operations can pass future Carrier/Seasonal timelines directly through the model to immediately verify if route clusters will tip beyond median traffic volume (`High_Traffic` thresholds) and proactively pre-schedule personnel dynamically.
+**Business Application:** Logistics procurement and ground-handling deployment can utilize the resulting `Logistic Regression` mapping structure. Rather than blanketing all gates equally, operations can pass future passenger and seasonal timelines directly through this lightweight, highly interpretable model to verify if route clusters will tip beyond median traffic volume (`High_Traffic` thresholds) and proactively pre-schedule personnel dynamically.
