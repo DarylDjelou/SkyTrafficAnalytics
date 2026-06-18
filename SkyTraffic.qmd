@@ -47,7 +47,7 @@ This dataset allows for analysis of global aviation trends, seasonal demand, and
 
 **Purpose of this step:** Before we can process the data, we must bring our required software libraries into the R environment. We utilize `readr` for fast CSV imports, `dplyr` for data wrangling, `ggplot2` for plotting, and `caret`/`ranger` for predictive analytics later.
 
-```{r}
+```{r load-libraries-and-data}
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -74,8 +74,7 @@ International_Report_Passengers
 
 Our primary targets for the modeling phase will be: \* `Total` (Numeric for Regression) \* `High_Traffic` (A derived classification target)
 
-```{r}
-#| label: data-exploration
+```{r data-exploration}
 # Output the dimensions (rows x columns)
 cat("Dataset Dimensions:", dim(International_Report_Departures), "\n")
 
@@ -87,8 +86,7 @@ glimpse(International_Report_Departures)
 
 **Purpose of this step:** Machine learning models (like Random Forests or Linear regressions) naturally fail or crash when they encounter `NA` (missing) values because they cannot compute mathematical equations with blanks. Here, we build a function to scan every column.
 
-```{r}
-#| label: missing-values
+```{r missing-values}
 # Function to sum NA values for each column
 check_missing_values <- function(data) {
   missing_values <- sapply(data, function(x) sum(is.na(x)))
@@ -108,8 +106,7 @@ check_missing_values(International_Report_Passengers)
 
 ## Check for outliers in the dataset
 
-```{r}
-#| label: outliers
+```{r outliers}
 # Isolating the dataset to the decade spanning 9/11 and the 2008 recession
 filtered_data <- subset(International_Report_Departures, Year >= 2000 & Year <= 2011)
 
@@ -123,8 +120,7 @@ ggplot(filtered_data, aes(x = factor(Year), y = Total)) +
 
 **Interpretation:** The red visual dots represent statistical outliers (routes with exceptionally huge activity like NYC to London). The boxes themselves show that the central median of flight routes rests tightly below 50 departures per month, per route.
 
-```{r}
-#| label: summary-stats
+```{r summary-stats}
 summary(International_Report_Departures$Total)
 
 International_Report_Departures %>%
@@ -149,8 +145,7 @@ In this stage, we transition from examining raw row data into discovering underl
 
 **Purpose of this step:** By aggregating the total flight departures specifically by `Year`, we can visualize the macroeconomic trajectory of the aviation industry and detect drops from worldwide crises.
 
-```{r}
-#| label: eda-time
+```{r eda-time}
 # Group data by Year and sum the Total column
 departures_by_year <- International_Report_Departures %>%
   group_by(Year) %>%
@@ -170,8 +165,7 @@ ggplot(departures_by_year, aes(x = Year, y = TotalDepartures)) +
 
 **Purpose of this step:** Not all airports are equal. We extract the top 10 highest-volume Gateway Airports (`usg_apt`) to understand which cities actually push international numbers.
 
-```{r}
-#| label: eda-airports
+```{r eda-airports}
 # Group by US origin, sum volume, sort descending, grab top 10
 departures_by_origin <- International_Report_Departures %>%
   group_by(usg_apt) %>%
@@ -192,21 +186,20 @@ ggplot(departures_by_origin, aes(x = reorder(usg_apt, TotalDepartures), y = Tota
 
 **Purpose of this step:** Are flights influenced by the time of year? A 2D Heatmap maps `Month` against `Year` to expose any repetitive behavioral patterns.
 
-```{r}
-#| label: eda-heatmap
+```{r eda-heatmap}
 departures_by_month <- International_Report_Departures %>%
   group_by(Year, Month) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE), .groups="drop")
 ```
 ## Departures by Airport
 
-```{r}
+```{r departures-by-airport}
 departures_by_origin <- International_Report_Departures %>%
   group_by(usg_apt) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
 departures_by_origin
 ```
-```{r}
+```{r departures-by-dest}
 
 departures_by_dest <- International_Report_Departures %>%
   group_by(fg_apt) %>%
@@ -216,7 +209,7 @@ departures_by_dest
 
 ## Departures by Airline
 
-```{r}
+```{r departures-by-airline}
 departures_by_airline <- International_Report_Departures %>%
   group_by(carrier) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
@@ -225,7 +218,7 @@ departures_by_airline
 
 ## Route Analysis
 
-```{r}
+```{r departures-by-route}
 departures_by_route <- International_Report_Departures %>%
   group_by(usg_apt, fg_apt) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
@@ -234,7 +227,7 @@ departures_by_route
 
 ## Seasonal Patterns
 
-```{r}
+```{r seasonal-pattern}
 seasonal_pattern <- International_Report_Departures %>%
   group_by(Month) %>%
   summarise(TotalDepartures = sum(Total, na.rm = TRUE))
@@ -243,14 +236,14 @@ seasonal_pattern
 
 ## Top Routes or Airports
 
-```{r}
+```{r top-n-routes}
 top_n_routes <- departures_by_route %>%
   arrange(desc(TotalDepartures)) %>%
   slice_head(n = 10)
 top_n_routes
 ```
 
-```{r}
+```{r top-n-airports}
 top_n_airports <- departures_by_origin %>%
   arrange(desc(TotalDepartures)) %>%
   slice_head(n = 10)
@@ -259,7 +252,7 @@ top_n_airports
 
 ## Year-over-Year Growth
 
-```{r}
+```{r yoy-growth}
 departures_by_year <- departures_by_year %>%
   arrange(Year) %>%
   mutate(YoY_Growth = (TotalDepartures - lag(TotalDepartures)) / lag(TotalDepartures) * 100)
@@ -268,13 +261,13 @@ departures_by_year
 
 ## Average Departures per Route/Airport
 
-```{r}
+```{r avg-departures-route}
 avg_departures_per_route <- departures_by_route %>%
   summarise(AvgDepartures = mean(TotalDepartures, na.rm = TRUE))
 avg_departures_per_route
 ```
 
-```{r}
+```{r avg-departures-airport}
 avg_departures_per_airport <- departures_by_origin %>%
   summarise(AvgDepartures = mean(TotalDepartures, na.rm = TRUE))
 avg_departures_per_airport
@@ -286,7 +279,7 @@ avg_departures_per_airport
 
 ### Total Departures by Year
 
-```{r}
+```{r plot-departures-year}
 ggplot(departures_by_year, aes(x = Year, y = TotalDepartures)) +
   geom_line() +
   labs(title = "Total Departures by Year", x = "Year", y = "Total Departures") +
@@ -295,7 +288,7 @@ ggplot(departures_by_year, aes(x = Year, y = TotalDepartures)) +
 
 ### Top 10 Origin Airports
 
-```{r}
+```{r plot-top-airports}
 ggplot(top_n_airports, aes(x = reorder(usg_apt, -TotalDepartures), y = TotalDepartures)) +
   geom_bar(stat = "identity") +
   labs(title = "Top 10 Origin Airports by Departures", x = "Origin Airport", y = "Total Departures") +
@@ -304,7 +297,7 @@ ggplot(top_n_airports, aes(x = reorder(usg_apt, -TotalDepartures), y = TotalDepa
 
 ### Departures Heatmap by Month and Year
 
-```{r}
+```{r plot-departures-heatmap}
 ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = TotalDepartures)) +
   geom_tile() +
   labs(title = "Monthly Density Heatmap: Detecting Seasons", x = "Month (1-12)", y = "Year") +
@@ -318,7 +311,7 @@ ggplot(departures_by_month, aes(x = factor(Month), y = factor(Year), fill = Tota
 
 **Purpose of this step:** We mathematically feature-engineer a brand new column named `Season` based on specific months, to effectively group our data into four major physical seasons for easier interpretation.
 
-```{r}
+```{r seasonal-transformation}
 library(tidyverse)
 library(patchwork)
 
@@ -369,8 +362,7 @@ visualize_flights_per_season(International_Report_Departures)
 
 
 **Interpretation:** The aggregated math explicitly validates what the heathen map hinted at: Summer carries the dominant load of historical international volumes, with Winter naturally dragging functionally lower due to holiday freezes and school schedules.
-```{r}
-#| label: correlation-matrix
+```{r correlation-matrix}
 
 numeric_data <- International_Report_Departures %>%
   select(Year, Month, Total)
@@ -396,8 +388,7 @@ We now step away from historical visualization into explicit forward-looking Pre
 
 *Crucial Architecture Note:* We are utilizing low-cardinality predictors (`Year`, `Month`, `carriergroup`) rather than individual airports to prevent the algorithm from collapsing under "Unseen Factor Level" errors during prediction scoring! We also actively `.drop_na()` to resolve mathematical crashes.
 
-```{r}
-#| label: prep-models
+```{r prep-models}
 set.seed(42) # Lock randomization
 
 # Build modeling data
@@ -454,8 +445,7 @@ test_data <- test_data %>%
 
 **Purpose of this step:** This serves as our simplest numerical benchmark. Can we draw a straight line (`lm`) effectively mapping `Year`, `Month`, and `Carrier` to raw Flight volume?
 
-```{r}
-#| label: baseline-reg
+```{r baseline-reg}
 # Teach the Model on Training Set
 baseline_lm <- lm(LogTotal ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, data = train_data)
 
@@ -471,8 +461,7 @@ cat("Linear Regression Benchmark RMSE:", format(rmse_lm, digits=3), "\n")
 
 **Purpose of this step:** Rather than predicting an exact number, we simplify the problem: Can we predict a distinct *Category* (`High_Traffic` - Yes or No)? We utilize a `glm(family="binomial")` to build this S-curve classification boundary!
 
-```{r}
-#| label: baseline-class
+```{r baseline-class}
 # Train Logistic Classifier on Train set
 baseline_log_reg <- glm(High_Traffic ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, 
                         data = train_data, family = "binomial")
@@ -502,8 +491,7 @@ Linear models struggle with complex groupings. We attempt tree-based mapping.
 
 **Purpose of this step:** A decision tree uses distinct "splits" (if X \> value then go left, else go right) allowing for naturally chaotic non-linear data to map to High Traffic routes.
 
-```{r}
-#| label: adv-dt
+```{r adv-dt}
 # rpart stands for Recursive Partitioning (Decision Trees)
 dt_model <- rpart(High_Traffic ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, 
                   data = train_data, method = "class", cp=0.005)
@@ -513,6 +501,7 @@ rpart.plot(dt_model, main="Architectural Map of High Traffic Decision Gates", bo
 
 # Predict against tests
 dt_classes <- predict(dt_model, test_data, type = "class")
+dt_probs <- predict(dt_model, test_data, type = "prob")[, "Yes"]
 dt_conf_matrix <- confusionMatrix(dt_classes, test_data$High_Traffic)
 cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] * 100, digits=4), "%\n")
 ```
@@ -523,8 +512,7 @@ cat("Decision Tree Accuracy Score:", format(dt_conf_matrix$overall['Accuracy'] *
 
 **Purpose of this step:** A single tree often memorizes noise (overfits). A `Random Forest` generates hundreds of slightly different trees and takes their average vote, heavily mitigating failure.
 
-```{r}
-#| label: adv-rf
+```{r adv-rf}
 # Using ranger library for fast Random Forest execution
 rf_model <- ranger(High_Traffic ~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, 
                    data = train_data, importance = "impurity", probability = TRUE,
@@ -544,8 +532,7 @@ cat("Ensemble Random Forest Accuracy Score:", format(rf_conf_matrix$overall['Acc
 
 **Purpose of this step:** XGBoost iteratively trains decision trees to minimize errors of previous trees, often yielding superior accuracy on tabular data.
 
-```{r}
-#| label: adv-xgb
+```{r adv-xgb}
 # Prepare data for XGBoost (requires numeric matrices)
 # Convert factors to dummy variables
 dummy_model <- dummyVars(~ Year + Month + Season + Top_Hub + carriergroup + Total_Passengers + Load_Factor, data = train_data)
@@ -575,8 +562,7 @@ cat("XGBoost Accuracy Score:", format(xgb_conf_matrix$overall['Accuracy'] * 100,
 
 **Purpose of this step:** Because the Random Forest is a "Black Box" (hard to read), we have it output essentially what features were the most heavily requested across its 500 decision trees to isolate our most critical business vectors.
 
-```{r}
-#| label: feature-importance
+```{r feature-importance}
 importance_df <- data.frame(
   Feature = names(rf_model$variable.importance),
   Importance = rf_model$variable.importance
@@ -589,35 +575,24 @@ ggplot(importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
   theme_minimal()
 ```
 
-## Receiver Operating Characteristics (ROC Curve)
+## Confusion Matrices & Comprehensive Model Comparison
 
-**Purpose of this step:** The ROC curve maps how effectively a model separates True Positives from False Positives across *all* thresholds (not just the arbitrary 50% cutoff limit we hardcoded earlier). The area under this curve (AUC) represents perfection.
+**Purpose of this step:** To transparently summarize the exact predictive performance of all our models across True Positives, True Negatives, False Positives, and False Negatives. We explicitly output the final Confusion Matrices and compute a comparative matrix extracting detailed diagnostics.
 
-```{r}
-#| label: roc-curve
-# Map responses
-roc_logistic <- roc(test_data$High_Traffic, log_probs, levels=c("No", "Yes"))
-roc_rf <- roc(test_data$High_Traffic, rf_probs, levels=c("No", "Yes"))
-roc_xgb <- roc(test_data$High_Traffic, xgb_probs, levels=c("No", "Yes"))
+```{r model-comparison}
+# Explicitly display Confusion Matrices
+cat("\n--- Logistic Regression Confusion Matrix ---\n")
+print(conf_matrix_logistic$table)
 
-# Render overlapping graphs
-plot(roc_logistic, col = "blue", main = "Multi-Model Threshold ROC Assessment", lwd=2)
-plot(roc_rf, col = "red", add = TRUE, lwd=2)
-plot(roc_xgb, col = "green", add = TRUE, lwd=2)
-legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic), 2), ")"), 
-                                 paste("Random Forest (AUC=", round(auc(roc_rf), 2), ")"),
-                                 paste("XGBoost (AUC=", round(auc(roc_xgb), 2), ")")), 
-       col = c("blue", "red", "green"), lwd = 3)
-```
+cat("\n--- Decision Tree Confusion Matrix ---\n")
+print(dt_conf_matrix$table)
 
-**Interpretation:** As we can observe, all the models perform very similarly on the ROC curve, with all AUC values being close to 0.98, indicating outstanding classification performance across the board. While ensemble models are highly capable, Logistic Regression matches their diagnostic ability perfectly, proving that complex non-linear models are not strictly necessary here.
+cat("\n--- Random Forest Confusion Matrix ---\n")
+print(rf_conf_matrix$table)
 
-## Comprehensive Model Comparison
+cat("\n--- XGBoost Confusion Matrix ---\n")
+print(xgb_conf_matrix$table)
 
-**Purpose of this step:** To summarize the predictive capabilities of our developed models, we compare their primary performance metrics, including Accuracy and Kappa statistics, to formally declare the most effective classification architecture.
-
-```{r}
-#| label: model-comparison
 # Consolidating metrics into a comparative dataframe
 model_comparison <- data.frame(
   Model = c("Logistic Regression", "Decision Tree", "Random Forest", "XGBoost"),
@@ -627,16 +602,34 @@ model_comparison <- data.frame(
     rf_conf_matrix$overall['Accuracy'],
     xgb_conf_matrix$overall['Accuracy']
   ),
+  Error_Rate = c(
+    1 - conf_matrix_logistic$overall['Accuracy'],
+    1 - dt_conf_matrix$overall['Accuracy'],
+    1 - rf_conf_matrix$overall['Accuracy'],
+    1 - xgb_conf_matrix$overall['Accuracy']
+  ),
   Kappa = c(
     conf_matrix_logistic$overall['Kappa'],
     dt_conf_matrix$overall['Kappa'],
     rf_conf_matrix$overall['Kappa'],
     xgb_conf_matrix$overall['Kappa']
+  ),
+  Sensitivity = c(
+    conf_matrix_logistic$byClass['Sensitivity'],
+    dt_conf_matrix$byClass['Sensitivity'],
+    rf_conf_matrix$byClass['Sensitivity'],
+    xgb_conf_matrix$byClass['Sensitivity']
+  ),
+  Specificity = c(
+    conf_matrix_logistic$byClass['Specificity'],
+    dt_conf_matrix$byClass['Specificity'],
+    rf_conf_matrix$byClass['Specificity'],
+    xgb_conf_matrix$byClass['Specificity']
   )
 )
 
 # Output a clean table
-knitr::kable(model_comparison, digits = 4, caption = "Model Performance Comparison")
+knitr::kable(model_comparison, digits = 4, caption = "Model Performance Comparison (Accuracy, Error Rate, Kappa, Sensitivity, Specificity)")
 
 # Render comparison plot
 ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = Model)) +
@@ -649,7 +642,32 @@ ggplot(model_comparison, aes(x = reorder(Model, Accuracy), y = Accuracy, fill = 
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))
 ```
 
-**Interpretation:** The aggregate comparison unequivocally demonstrates that while Random Forest gives us good accuracy, the Logistic Regression model provides the highest predictive accuracy for classifying high-traffic flight routes. This highlights the effectiveness of linear decision boundaries when working with categorical aviation data.
+**Interpretation:** The confusion matrices reveal the inner workings behind the accuracy scores. Logistic Regression successfully correctly identifies the highest proportion of "Yes" classes (High Traffic) and "No" classes efficiently, achieving the strongest Accuracy and Specificity. All models demonstrate high capability, but Logistic Regression provides the most robust decision boundary without overfitting.
+
+## Receiver Operating Characteristics (ROC Curve)
+
+**Purpose of this step:** The ROC curve maps how effectively a model separates True Positives from False Positives across *all* thresholds. The area under this curve (AUC) represents perfection.
+
+```{r roc-curve}
+# Map responses
+roc_logistic <- roc(test_data$High_Traffic, log_probs, levels=c("No", "Yes"))
+roc_dt <- roc(test_data$High_Traffic, dt_probs, levels=c("No", "Yes"))
+roc_rf <- roc(test_data$High_Traffic, rf_probs, levels=c("No", "Yes"))
+roc_xgb <- roc(test_data$High_Traffic, xgb_probs, levels=c("No", "Yes"))
+
+# Render overlapping graphs
+plot(roc_logistic, col = "blue", main = "Multi-Model Threshold ROC Assessment", lwd=2)
+plot(roc_dt, col = "purple", add = TRUE, lwd=2)
+plot(roc_rf, col = "red", add = TRUE, lwd=2)
+plot(roc_xgb, col = "green", add = TRUE, lwd=2)
+legend("bottomright", legend = c(paste("Log-Reg (AUC=", round(auc(roc_logistic), 3), ")"), 
+                                 paste("Decision Tree (AUC=", round(auc(roc_dt), 3), ")"),
+                                 paste("Random Forest (AUC=", round(auc(roc_rf), 3), ")"),
+                                 paste("XGBoost (AUC=", round(auc(roc_xgb), 3), ")")), 
+       col = c("blue", "purple", "red", "green"), lwd = 3)
+```
+
+**Interpretation:** The ROC graph clearly visualizes model comparison dynamically. Logistic Regression, Random Forest, and XGBoost all demonstrate similarly phenomenal separation power (AUC ~ 0.98). However, the Decision Tree explicitly drops lower, visually representing its limitations with a singular step-based approach on numerical margins, reinforcing that our regression or boosting algorithms are necessary for maximum confidence.
 
 # Final Conclusion and Real-World Reporting
 
